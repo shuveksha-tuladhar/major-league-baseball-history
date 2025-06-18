@@ -9,7 +9,7 @@ st.title("Baseball Players Birthplace Explorer")
 # Load data
 @st.cache_data
 def load_data():
-    conn = sqlite3.connect("database.db")
+    conn = sqlite3.connect("db/database.db")
     df = pd.read_sql_query("SELECT * FROM players_birthplace", conn)
     conn.close()
     
@@ -42,7 +42,7 @@ filtered_df = df[
 
 ]
 
-st.markdown(f"### 🎯 Showing {len(filtered_df)} players born in **{selected_state}** between {year_range[0]} and {year_range[1]}")
+st.markdown(f"### Showing {len(filtered_df)} players born in **{selected_state}** between {year_range[0]} and {year_range[1]}")
 
 # Display table
 st.dataframe(filtered_df, use_container_width=True)
@@ -53,7 +53,7 @@ col1, col2 = st.columns(2)
 col1.metric("Total Players", len(filtered_df))
 col2.metric("Unique Debut Years", filtered_df['debut_year'].nunique())
 
-
+st.markdown("### Number of Baseball Players Born by U.S. State")
 # Mapping from full state names to abbreviations for Plotly
 state_abbrev = {
     'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
@@ -76,7 +76,6 @@ state_counts["num_players_display"] = state_counts["num_players"].apply(
     lambda x: "500+" if x > 500 else str(x)
 )
 
-# Assuming state_counts["num_players"] is numeric
 bins = [0, 50, 100, 200, 300, 400, 500, float('inf')]
 labels = ["0–50", "51–100", "101–200", "201–300", "301–400", "401–500", "500+"]
 
@@ -100,10 +99,77 @@ fig = px.choropleth(
     scope="usa",
     color_continuous_scale="Blues",
     labels={"num_players": "Number of Players", "range_bin": "Range"},
-    title="Number of Baseball Players Born by U.S. State",
+    title="US Map",
     hover_name="state",
     hover_data={"num_players": True, "num_players_display": False, "state": False, "range_bin": True}
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("### Number of Players Born Each Year")
+#  Line Chart: Players Born per Year
+birth_trend = df.dropna(subset=["birth_year"])
+birth_counts = birth_trend.groupby("birth_year")["name"].count().reset_index(name="num_players")
+
+fig_birth = px.line(
+    birth_counts,
+    x="birth_year",
+    y="num_players",
+    title="Birth of player by year",
+    labels={"birth_year": "Birth Year", "num_players": "Number of Players"}
+)
+st.plotly_chart(fig_birth, use_container_width=True)
+
+# Players by Debut Decade
+st.markdown("### Players by Debut Decade")
+
+filtered_df["debut_decade"] = (filtered_df["debut_year"] // 10) * 10
+decade_counts = (
+    filtered_df["debut_decade"]
+    .value_counts()
+    .sort_index()
+    .reset_index()
+)
+decade_counts.columns = ["Decade", "Player Count"]
+
+fig_decade = px.bar(
+    decade_counts,
+    x="Decade",
+    y="Player Count",
+    title="Player Count by Debut Decade",
+    color="Player Count",
+    color_continuous_scale="Viridis",
+    text="Player Count",
+)
+
+fig_decade.update_traces(marker_line_width=0.5, marker_line_color="gray", textposition="outside")
+fig_decade.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    font=dict(size=14),
+    xaxis_title="Decade",
+    yaxis_title="Number of Players",
+    title_x=0.5,
+    title_font=dict(size=20),
+    xaxis=dict(tickmode="linear", dtick=10),
+    yaxis=dict(gridcolor="lightgray"),
+)
+
+st.plotly_chart(fig_decade, use_container_width=True)
+
+
+st.markdown("---")
+st.markdown("**Data Source**")
+st.markdown(
+    "This data was scraped from [Baseball Almanac](https://www.baseball-almanac.com/players/). "
+    "The dataset includes player names, birthplaces, birth dates, debut years, and more."
+)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown(" **Data Source:**")
+st.sidebar.markdown("""[Baseball Almanac](https://www.baseball-almanac.com/)  
+Data scraped using Selenium from player birth and debut information.
+""")
+
+
 

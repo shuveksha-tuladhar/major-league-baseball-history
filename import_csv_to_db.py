@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 
-conn = sqlite3.connect('database.db')
+conn = sqlite3.connect('db/database.db')
 cur = conn.cursor()
 
 cur.execute('DROP TABLE IF EXISTS players')
@@ -33,8 +33,8 @@ cur.execute('''
 ''')
 
 # Load CSV files
-players_df = pd.read_csv("players_by_birthyear.csv")
-birthplace_df = pd.read_csv("players_by_birthplace.csv")
+players_df = pd.read_csv("csv/players_by_birthyear.csv")
+birthplace_df = pd.read_csv("csv/players_by_birthplace.csv")
 
 players_df = players_df.where(pd.notnull(players_df), None)
 birthplace_df = birthplace_df.where(pd.notnull(birthplace_df), None)
